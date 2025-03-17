@@ -435,16 +435,19 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       // Check if all members have received the pot
       const allReceived = updatedMembers.every(m => m.hasReceivedPot);
       
+      // If all received, reset hasReceivedPot for all members
+      let finalMembers = updatedMembers;
+      if (allReceived) {
+        finalMembers = updatedMembers.map(m => ({ ...m, hasReceivedPot: false }));
+      }
+      
       // Update group
       const updatedGroup: Group = {
         ...group,
-        members: updatedMembers,
         // If all received, start a new cycle
         currentCycle: allReceived ? group.currentCycle + 1 : group.currentCycle,
-        // If all received, reset hasReceivedPot for all members
-        members: allReceived
-          ? updatedMembers.map(m => ({ ...m, hasReceivedPot: false }))
-          : updatedMembers,
+        // Use finalMembers which is either updated or reset
+        members: finalMembers,
         // Set next distribution date
         nextDistributionDate: new Date(
           group.cycleType === 'monthly'
