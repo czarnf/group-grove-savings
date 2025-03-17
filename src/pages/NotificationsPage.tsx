@@ -1,71 +1,103 @@
 
+import { useState } from "react";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { NotificationCard } from "@/components/notifications/NotificationCard";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check } from "lucide-react";
+import { Bell, CheckCheck, Filter } from "lucide-react";
 
 export default function NotificationsPage() {
   const { notifications, markAllAsRead } = useNotifications();
+  const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   
-  const unreadNotifications = notifications.filter(n => !n.read);
-  const readNotifications = notifications.filter(n => n.read);
+  const unreadNotifications = notifications.filter(notification => !notification.read);
+  const displayedNotifications = activeTab === "all" ? notifications : unreadNotifications;
+  
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+  };
   
   return (
     <div className="container py-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Notifications</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div className="flex items-center">
+          <Bell className="mr-3 h-6 w-6" />
+          <h1 className="text-3xl font-bold">Notifications</h1>
+        </div>
         
         {unreadNotifications.length > 0 && (
-          <Button onClick={markAllAsRead} variant="outline" className="flex items-center">
-            <Check className="mr-2 h-4 w-4" />
-            Mark all as read
+          <Button variant="outline" onClick={handleMarkAllAsRead}>
+            <CheckCheck className="mr-2 h-4 w-4" /> Mark All as Read
           </Button>
         )}
       </div>
       
-      <Tabs defaultValue="all">
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">
-            All ({notifications.length})
-          </TabsTrigger>
-          <TabsTrigger value="unread">
-            Unread ({unreadNotifications.length})
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => setActiveTab(value as "all" | "unread")}>
+        <div className="flex justify-between items-center mb-6">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="unread">
+              Unread
+              {unreadNotifications.length > 0 && (
+                <span className="ml-2 h-5 w-5 rounded-full bg-primary text-xs flex items-center justify-center text-primary-foreground">
+                  {unreadNotifications.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          
+          <Button variant="ghost" size="sm" className="text-muted-foreground">
+            <Filter className="mr-2 h-4 w-4" /> Filter
+          </Button>
+        </div>
         
         <TabsContent value="all">
-          <div className="space-y-4">
-            {notifications.length === 0 ? (
-              <div className="bg-muted p-8 rounded-lg text-center">
-                <h3 className="text-xl font-medium mb-2">No Notifications</h3>
+          {notifications.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Notifications</CardTitle>
+                <CardDescription>
+                  You don't have any notifications at the moment.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <p className="text-muted-foreground">
-                  You don't have any notifications yet.
+                  Notifications about your groups, distributions, and account activity will appear here.
                 </p>
-              </div>
-            ) : (
-              notifications.map(notification => (
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {notifications.map((notification) => (
                 <NotificationCard key={notification.id} notification={notification} />
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="unread">
-          <div className="space-y-4">
-            {unreadNotifications.length === 0 ? (
-              <div className="bg-muted p-8 rounded-lg text-center">
-                <h3 className="text-xl font-medium mb-2">No Unread Notifications</h3>
-                <p className="text-muted-foreground">
+          {unreadNotifications.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Unread Notifications</CardTitle>
+                <CardDescription>
                   You've read all your notifications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Any new notifications will appear here.
                 </p>
-              </div>
-            ) : (
-              unreadNotifications.map(notification => (
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {unreadNotifications.map((notification) => (
                 <NotificationCard key={notification.id} notification={notification} />
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

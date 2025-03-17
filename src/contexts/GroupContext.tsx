@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState } from "react";
 import { Distribution, Group, GroupMember } from "@/types";
 import { mockGroups } from "@/lib/mockData";
@@ -29,7 +28,6 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // Filter groups where the current user is a member
   const userGroups = groups.filter(group => 
     group.members.some(member => member.userId === user?.id)
   );
@@ -43,7 +41,6 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
         throw new Error("You must be logged in to create a group");
       }
       
-      // Generate number pool based on max members
       const maxMembers = groupData.maxMembers || 10;
       const numberPool = Array.from({ length: maxMembers }, (_, i) => i + 1);
       
@@ -53,12 +50,12 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
         description: groupData.description || "",
         creatorId: user.id,
         createdAt: new Date(),
-        memberCount: 1, // Creator is the first member
+        memberCount: 1,
         maxMembers: maxMembers,
         contributionAmount: groupData.contributionAmount || 0,
         currency: groupData.currency || "USD",
         cycleType: groupData.cycleType || "monthly",
-        nextDistributionDate: groupData.nextDistributionDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        nextDistributionDate: groupData.nextDistributionDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         numberPool: numberPool,
         status: "active",
         currentCycle: 1,
@@ -68,7 +65,7 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
             userId: user.id,
             name: user.name,
             profilePicture: user.profilePicture,
-            selectedNumber: null, // Creator starts with no number selected
+            selectedNumber: null,
             hasReceivedPot: false,
             joinedAt: new Date()
           }
@@ -114,17 +111,14 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       
       const group = groups[groupIndex];
       
-      // Check if user is already a member
       if (group.members.some(m => m.userId === user.id)) {
         throw new Error("You are already a member of this group");
       }
       
-      // Check if group is full
       if (group.memberCount >= group.maxMembers) {
         throw new Error("This group is already full");
       }
       
-      // Add user as a new member
       const newMember: GroupMember = {
         id: `member-${Date.now()}`,
         userId: user.id,
@@ -181,18 +175,15 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       
       const group = groups[groupIndex];
       
-      // Check if user is the creator
       if (group.creatorId === user.id) {
         throw new Error("As the creator, you cannot leave the group. You can delete it instead.");
       }
       
-      // Check if user is a member
       const memberIndex = group.members.findIndex(m => m.userId === user.id);
       if (memberIndex === -1) {
         throw new Error("You are not a member of this group");
       }
       
-      // Remove user from members
       const updatedMembers = group.members.filter(m => m.userId !== user.id);
       
       const updatedGroup = {
@@ -241,12 +232,10 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       
       const group = groups[groupIndex];
       
-      // Check if user is the creator
       if (group.creatorId !== user.id) {
         throw new Error("Only the group creator can update group settings");
       }
       
-      // Update group data
       const updatedGroup = {
         ...group,
         ...groupData,
@@ -291,12 +280,10 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Group not found");
       }
       
-      // Check if user is the creator
       if (group.creatorId !== user.id) {
         throw new Error("Only the group creator can delete the group");
       }
       
-      // Delete the group
       const updatedGroups = groups.filter(g => g.id !== groupId);
       setGroups(updatedGroups);
       
@@ -336,23 +323,19 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       
       const group = groups[groupIndex];
       
-      // Check if number is in the pool
       if (!group.numberPool.includes(number)) {
         throw new Error("Invalid number selection. Number is not in the pool.");
       }
       
-      // Check if number is already selected by another member
       if (group.members.some(m => m.selectedNumber === number && m.userId !== user.id)) {
         throw new Error("This number is already selected by another member.");
       }
       
-      // Find user's member record
       const memberIndex = group.members.findIndex(m => m.userId === user.id);
       if (memberIndex === -1) {
         throw new Error("You are not a member of this group");
       }
       
-      // Update user's selected number
       const updatedMembers = [...group.members];
       updatedMembers[memberIndex] = {
         ...updatedMembers[memberIndex],
@@ -404,12 +387,10 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       
       const group = groups[groupIndex];
       
-      // Check if user is the creator
       if (group.creatorId !== user.id) {
         throw new Error("Only the group creator can manage distributions");
       }
       
-      // Find target member
       const memberIndex = group.members.findIndex(m => m.id === memberId);
       if (memberIndex === -1) {
         throw new Error("Member not found in this group");
@@ -417,38 +398,28 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       
       const targetMember = group.members[memberIndex];
       
-      // Check if member has already received the pot
       if (targetMember.hasReceivedPot) {
         throw new Error("This member has already received the pot in this cycle");
       }
       
-      // Calculate pot amount
       const potAmount = group.contributionAmount * group.memberCount;
       
-      // Mark member as received
       const updatedMembers = [...group.members];
       updatedMembers[memberIndex] = {
         ...targetMember,
         hasReceivedPot: true
       };
       
-      // Check if all members have received the pot
       const allReceived = updatedMembers.every(m => m.hasReceivedPot);
       
-      // If all received, reset hasReceivedPot for all members
-      let finalMembers = updatedMembers;
-      if (allReceived) {
-        finalMembers = updatedMembers.map(m => ({ ...m, hasReceivedPot: false }));
-      }
+      const finalMembers = allReceived 
+        ? updatedMembers.map(m => ({ ...m, hasReceivedPot: false }))
+        : updatedMembers;
       
-      // Update group
       const updatedGroup: Group = {
         ...group,
-        // If all received, start a new cycle
-        currentCycle: allReceived ? group.currentCycle + 1 : group.currentCycle,
-        // Use finalMembers which is either updated or reset
         members: finalMembers,
-        // Set next distribution date
+        currentCycle: allReceived ? group.currentCycle + 1 : group.currentCycle,
         nextDistributionDate: new Date(
           group.cycleType === 'monthly'
             ? new Date().setMonth(new Date().getMonth() + 1)
@@ -462,7 +433,6 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       updatedGroups[groupIndex] = updatedGroup;
       setGroups(updatedGroups);
       
-      // Create distribution record
       const distribution: Distribution = {
         id: `dist-${Date.now()}`,
         groupId: groupId,
