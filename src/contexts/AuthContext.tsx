@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -20,7 +20,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   // Initialize and set up auth listener
   useEffect(() => {
@@ -79,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast({
         title: "Signed in successfully",
         description: "Welcome back!",
-        variant: "default"
       });
       
     } catch (error) {
@@ -141,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast({
         title: "Account created successfully",
         description: "Please check your email to confirm your account",
-        variant: "default"
       });
       
     } catch (error) {
@@ -163,7 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
-        variant: "default"
       });
       
     } catch (error) {
