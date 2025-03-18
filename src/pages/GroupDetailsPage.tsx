@@ -5,6 +5,7 @@ import { useGroups } from "@/contexts/GroupContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { GroupMemberList } from "@/components/groups/GroupMemberList";
 import { NumberSelector } from "@/components/groups/NumberSelector";
+import { AddMemberForm } from "@/components/groups/AddMemberForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { ArrowLeft, Calendar, CircleDollarSign, CreditCard, Users, Info, Settings, Trash2, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, CircleDollarSign, CreditCard, Users, Info, Settings, Trash2, Clock, UserPlus } from "lucide-react";
 
 export default function GroupDetailsPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -225,53 +226,67 @@ export default function GroupDetailsPage() {
             </div>
             
             {isCreator && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Settings className="mr-2 h-5 w-5" />
-                    Admin Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      As the group creator, you can manage distributions and group settings.
-                    </p>
-                    
-                    <Separator />
-                    
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Distribute Funds</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Select a member to receive the current pot:
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <UserPlus className="mr-2 h-5 w-5" />
+                      Add Member
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AddMemberForm groupId={group.id} />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Settings className="mr-2 h-5 w-5" />
+                      Admin Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        As the group creator, you can manage distributions and group settings.
                       </p>
                       
-                      {group.members
-                        .filter(m => !m.hasReceivedPot)
-                        .map(member => (
-                          <Button
-                            key={member.id}
-                            variant="outline"
-                            className="w-full justify-between mb-2"
-                            onClick={() => handleDistribute(member.id)}
-                            disabled={isLoading}
-                          >
-                            {member.name}
-                            <span className="text-muted-foreground">
-                              #{member.selectedNumber || "?"}
-                            </span>
-                          </Button>
-                        ))}
-                        
-                      {group.members.filter(m => !m.hasReceivedPot).length === 0 && (
-                        <p className="text-sm text-orange-500">
-                          All members have received the pot in this cycle.
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Distribute Funds</h4>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Select a member to receive the current pot:
                         </p>
-                      )}
+                        
+                        {group.members
+                          .filter(m => !m.hasReceivedPot)
+                          .map(member => (
+                            <Button
+                              key={member.id}
+                              variant="outline"
+                              className="w-full justify-between mb-2"
+                              onClick={() => handleDistribute(member.id)}
+                              disabled={isLoading}
+                            >
+                              {member.name}
+                              <span className="text-muted-foreground">
+                                #{member.selectedNumber || "?"}
+                              </span>
+                            </Button>
+                          ))}
+                          
+                        {group.members.filter(m => !m.hasReceivedPot).length === 0 && (
+                          <p className="text-sm text-orange-500">
+                            All members have received the pot in this cycle.
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </TabsContent>
