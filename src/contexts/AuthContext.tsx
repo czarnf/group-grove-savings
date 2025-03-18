@@ -1,15 +1,17 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import { User } from "@/types";
-import { currentUser as mockUser } from "@/lib/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (email: string, name: string, password: string) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -20,35 +22,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Initialize and set up auth listener
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem("user");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setLoading(true);
+        
+        if (session?.user) {
+          const mappedUser: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
+            createdAt: new Date(session.user.created_at),
+            isEmailVerified: session.user.email_confirmed_at ? true : false,
+            profilePicture: session.user.user_metadata?.avatar_url || undefined
+          };
+          
+          setUser(mappedUser);
+        } else {
+          setUser(null);
+        }
+        
+        setLoading(false);
+      }
+    );
     
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Check for existing session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setLoading(false);
+      }
+    };
     
-    setLoading(false);
+    checkSession();
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
   
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // In a real app, this would be an API call to authenticate
-      if (email === "user@example.com" && password === "password") {
-        setUser(mockUser);
-        localStorage.setItem("user", JSON.stringify(mockUser));
-        toast({
-          title: "Signed in successfully",
-          description: `Welcome back, ${mockUser.name}!`,
-          variant: "default"
-        });
-      } else {
-        throw new Error("Invalid email or password");
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        throw error;
       }
+      
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome back!",
+        variant: "default"
+      });
+      
     } catch (error) {
       toast({
         title: "Sign in failed",
@@ -61,29 +94,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth`
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+    } catch (error) {
+      toast({
+        title: "Google sign in failed",
+        description: (error as Error).message,
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const signUp = async (email: string, name: string, password: string) => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // In a real app, this would be an API call to register
-      const newUser: User = {
-        id: `user-${Date.now().toString()}`,
+      const { error } = await supabase.auth.signUp({
         email,
-        name,
-        createdAt: new Date(),
-        isEmailVerified: false
-      };
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
+        }
+      });
       
-      setUser(newUser);
-      localStorage.setItem("user", JSON.stringify(newUser));
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Account created successfully",
-        description: `Welcome, ${name}!`,
+        description: "Please check your email to confirm your account",
         variant: "default"
       });
+      
     } catch (error) {
       toast({
         title: "Sign up failed",
@@ -96,14 +156,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
-  const signOut = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    toast({
-      title: "Signed out successfully",
-      description: "You have been signed out of your account.",
-      variant: "default"
-    });
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+        variant: "default"
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Error signing out",
+        description: (error as Error).message,
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -112,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         loading,
         signIn,
+        signInWithGoogle,
         signUp,
         signOut,
         isAuthenticated: !!user
