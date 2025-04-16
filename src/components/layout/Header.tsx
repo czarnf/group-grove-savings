@@ -1,5 +1,5 @@
 
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,10 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NotificationMenu } from "../notifications/NotificationMenu";
-import { Bell, Home, LogOut, Settings, User } from "lucide-react";
+import { NotificationMenu } from "@/components/notifications/NotificationMenu";
+import { Bell, Home, LogOut, Menu, Settings, User, Users } from "lucide-react";
+import { useState } from "react";
 
 export function Header() {
+  const [isNavOpen, setIsNavOpen] = useState(false);
   const { user, isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -22,34 +24,60 @@ export function Header() {
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6 md:gap-10">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="h-6 w-6 bg-brand-primary rounded-full"></div>
-            <span className="font-bold text-xl">GroupGrove</span>
-          </Link>
+          <NavLink to="/" className="flex items-center space-x-2">
+            <Users className="h-6 w-6 text-brand-primary" />
+            <span className="font-bold text-xl">GroupGrove</span>            
+          </NavLink>
           
           {isAuthenticated && (
-            <nav className="hidden md:flex gap-6">
-              <Link
-                to="/dashboard"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/groups"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                My Groups
-              </Link>
+            <>
+             <button
+                className="md:hidden"
+                onClick={() => setIsNavOpen(!isNavOpen)}
+                aria-label="Toggle navigation"
+                aria-expanded={isNavOpen}
+                aria-controls="mobile-nav"
+             >
+               <Menu className="h-6 w-6" />
+             </button>
+             <nav
+                id="mobile-nav"
+                className={`md:flex gap-6 ${
+                 isNavOpen ? "flex flex-col absolute top-16 left-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 p-4" : "hidden"
+               }`}
+               >
+              <NavLink
+                  to="/dashboard"
+                  className={({ isActive }) =>
+                    `text-sm font-medium transition-colors ${
+                      isActive
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-primary"
+                    }`
+                  }
+                >
+                  Dashboard
+                </NavLink>
+                <NavLink
+                  to="/groups"
+                  className={({ isActive }) =>
+                    `text-sm font-medium transition-colors ${
+                      isActive
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-primary"
+                    }`
+                  }
+                >
+                  My Groups
+                </NavLink>
             </nav>
+            </>
           )}
         </div>
         
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
-            <>
-              <NotificationMenu />
-              
+            <>    
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -88,11 +116,13 @@ export function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <NotificationMenu />
+               
             </>
           ) : (
             <>
               <Button variant="ghost" onClick={() => navigate("/auth")}>
-                Sign In
+                Sign In 
               </Button>
               <Button onClick={() => navigate("/auth?signup=true")}>
                 Sign Up
